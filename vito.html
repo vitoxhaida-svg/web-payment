@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Gateway</title>
+    <style>
+        :root {
+            --primary: #6a5acd;
+            --secondary: #9370db;
+            --success: #4CAF50;
+            --info: #2196F3;
+            --warning: #FF9800;
+            --danger: #F44336;
+            --light: #f8f9fa;
+            --dark: #343a40;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .payment-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+            overflow: hidden;
+            transform: translateY(0);
+            opacity: 1;
+            transition: all 0.5s ease;
+        }
+        
+        .payment-container.loading {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+        
+        .payment-header {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .payment-header h2 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .payment-body {
+            padding: 30px;
+        }
+        
+        .payment-method {
+            margin-bottom: 25px;
+            border: 1px solid #eee;
+            border-radius: 10px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .payment-method:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .method-header {
+            background-color: #f9f9f9;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .method-header.active {
+            background-color: rgba(106, 90, 205, 0.1);
+        }
+        
+        .method-title {
+            display: flex;
+            align-items: center;
+            font-weight: 600;
+        }
+        
+        .method-icon {
+            width: 30px;
+            height: 30px;
+            margin-right: 10px;
+            object-fit: contain;
+        }
+        
+        .method-content {
+            padding: 20px;
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .method-content.active {
+            display: block;
+        }
+        
+        .qris-image {
+            width: 100%;
+            max-width: 250px;
+            display: block;
+            margin: 0 auto 15px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .qris-image:hover {
+            transform: scale(1.03);
+        }
+        
+        .payment-number {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .number-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .number-value {
+            font-size: 18px;
+            font-weight: 600;
+            word-break: break-all;
+        }
+        
+        .copy-btn {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .copy-btn:hover {
+            background-color: var(--secondary);
+            transform: translateY(-2px);
+        }
+        
+        .payment-instruction {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        .payment-instruction ol {
+            padding-left: 20px;
+            margin-top: 10px;
+        }
+        
+        .payment-instruction li {
+            margin-bottom: 8px;
+        }
+        
+        .payment-footer {
+            text-align: center;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-top: 1px solid #eee;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        /* Payment method specific colors */
+        .dana-method .method-header {
+            border-left: 4px solid #00B0FF;
+        }
+        
+        .gopay-method .method-header {
+            border-left: 4px solid #5ACD91;
+        }
+        
+        .qris-method .method-header {
+            border-left: 4px solid #FF6B00;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 480px) {
+            .payment-body {
+                padding: 20px;
+            }
+            
+            .method-header {
+                padding: 12px;
+            }
+            
+            .method-icon {
+                width: 25px;
+                height: 25px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="payment-container">
+        <div class="payment-header">
+            <h2>Payment Gateway</h2>
+            <p>Select your preferred payment method</p>
+        </div>
+        
+        <div class="payment-body">
+            <!-- DANA Payment Method -->
+            <div class="payment-method dana-method" onclick="toggleMethod('dana')">
+                <div class="method-header" id="dana-header">
+                    <div class="method-title">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/7/72/Logo_DANA.svg" alt="DANA" class="method-icon">
+                        <span>DANA</span>
+                    </div>
+                    <span>▶</span>
+                </div>
+                <div class="method-content" id="dana-content">
+                    <div class="payment-number">
+                        <div class="number-label">DANA Number</div>
+                        <div class="number-value">081289992420</div>
+                        <button class="copy-btn" onclick="copyToClipboard('081289992420', event)">Copy</button>
+                    </div>
+                    <div class="payment-instruction">
+                        <p><strong>How to pay via DANA:</strong></p>
+                        <ol>
+                            <li>Open DANA app on your phone</li>
+                            <li>Go to "Send Money" section</li>
+                            <li>Enter the DANA number above</li>
+                            <li>Input the amount and confirm payment</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- QRIS Payment Method -->
+            <div class="payment-method qris-method" onclick="toggleMethod('qris')">
+                <div class="method-header" id="qris-header">
+                    <div class="method-title">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/QR_code_for_mobile_English_Wikipedia.svg/1200px-QR_code_for_mobile_English_Wikipedia.svg.png" alt="QRIS" class="method-icon">
+                        <span>QRIS</span>
+                    </div>
+                    <span>▶</span>
+                </div>
+                <div class="method-content" id="qris-content">
+                    <img src="https://img1.pixhost.to/images/7543/626563674_kayzen.jpg" alt="QR Code" class="qris-image pulse">
+                    <div class="payment-instruction">
+                        <p><strong>How to pay via QRIS:</strong></p>
+                        <ol>
+                            <li>Open your mobile banking or e-wallet app</li>
+                            <li>Select "Scan QR" or "QRIS Payment"</li>
+                            <li>Scan the QR code above</li>
+                            <li>Input the amount and confirm payment</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- GOPAY Payment Method -->
+            <div class="payment-method gopay-method" onclick="toggleMethod('gopay')">
+                <div class="method-header" id="gopay-header">
+                    <div class="method-title">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/8/86/Gopay_logo.svg" alt="GOPAY" class="method-icon">
+                        <span>GOPAY</span>
+                    </div>
+                    <span>▶</span>
+                </div>
+                <div class="method-content" id="gopay-content">
+                    <div class="payment-number">
+                        <div class="number-label">GOPAY Number</div>
+                        <div class="number-value">081289992420</div>
+                        <button class="copy-btn" onclick="copyToClipboard('081289992420', event)">Copy</button>
+                    </div>
+                    <div class="payment-instruction">
+                        <p><strong>How to pay via GOPAY:</strong></p>
+                        <ol>
+                            <li>Open Gojek app on your phone</li>
+                            <li>Go to GOPAY section</li>
+                            <li>Select "Send Money"</li>
+                            <li>Enter the GOPAY number above</li>
+                            <li>Input the amount and confirm payment</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="payment-footer">
+            <p>After making payment, please confirm by sending the payment proof to our customer service.</p>
+        </div>
+    </div>
+
+    <script>
+        // Initial loading animation
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                document.querySelector('.payment-container').classList.remove('loading');
+            }, 100);
+        });
+        
+        // Toggle payment method content
+        function toggleMethod(method) {
+            const header = document.getElementById(`${method}-header`);
+            const content = document.getElementById(`${method}-content`);
+            const arrow = header.querySelector('span:last-child');
+            
+            // Toggle active class
+            header.classList.toggle('active');
+            content.classList.toggle('active');
+            
+            // Rotate arrow
+            if (content.classList.contains('active')) {
+                arrow.textContent = '▼';
+            } else {
+                arrow.textContent = '▶';
+            }
+        }
+        
+        // Copy to clipboard function
+        function copyToClipboard(text, event) {
+            event.stopPropagation(); // Prevent triggering the parent div's click event
+            
+            // Create temporary input element
+            const tempInput = document.createElement('input');
+            tempInput.value = text;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            
+            // Change button text temporarily
+            const button = event.target;
+            const originalText = button.textContent;
+            button.textContent = 'Copied!';
+            button.style.backgroundColor = '#4CAF50';
+            
+            setTimeout(() => {
+                button.textContent = originalText;
+                button.style.backgroundColor = '';
+            }, 2000);
+        }
+        
+        // Auto-open first method on mobile for better UX
+        function checkMobileAndOpenFirst() {
+            if (window.innerWidth <= 768) {
+                toggleMethod('dana');
+            }
+        }
+        
+        // Run on load and resize
+        window.addEventListener('load', checkMobileAndOpenFirst);
+        window.addEventListener('resize', checkMobileAndOpenFirst);
+    </script>
+</body>
+</html>
